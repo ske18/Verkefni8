@@ -1,6 +1,7 @@
 // TODO hér vantar að sækja viðeigandi föll úr öðrum modules
-import { show, createButtons } from './lib/ui.js';
-
+import { el } from './lib/helpers.js';
+import { show, createButtons, updateResultScreen } from './lib/ui.js';
+import { computerPlay, checkGame } from './lib/rock-paper-scissors.js';
 /** Hámarks fjöldi best-of leikja, ætti að vera jákvæð heiltala stærri en 0 */
 const MAX_BEST_OF = 10;
 
@@ -8,7 +9,7 @@ const MAX_BEST_OF = 10;
 let totalRounds;
 
 /** Númer umferðar í núverandi umferð */
-let currentRound;
+let currentRound = 1;
 
 /** Sigrar spilara í núverandi umferð */
 let playerWins = 0;
@@ -45,11 +46,12 @@ const games = [];
  */
 function playRound(player) {
   // Komumst að því hvað tölva spilaði og athugum stöðu leiks
-
+  const computer = computerPlay().toString();
+  const result = checkGame(player, computer);
   if (result === 1) {
-    playerWins == 1;
+    playerWins += 1;
   } else if (result === -1) {
-    computerWins == 1;
+    computerWins += 1;
   }
 
   const done = (playerWins / totalRounds > 0.5) || (computerWins / totalRounds > 0.5);
@@ -68,17 +70,23 @@ function playRound(player) {
 
   // Uppfærum teljara ef ekki jafntefli, verðum að gera eftir að við setjum titil
   if (result !== 0) {
-    currentRound = 1;
+    currentRound += 1;
   }
 
   // Ákveðum hvaða takka skuli sýna
-  const finishGameButton = document.querySelector('.result_buttons .finishGame');
-  const nextRoundButton = document.querySelector('result_buttons .nextRound');
+  const finishGameButton = document.querySelector('.finishGame');
+  const nextRoundButton = document.querySelector('.nextRound');
 
-  if (done)
-  finishGameButton
+  if (done) {
+    finishGameButton.classList.remove('hidden');
+    nextRoundButton.classList.add('hidden');
+  } else {
+    nextRoundButton.classList.remove('hidden');
+    finishGameButton.classList.add('hidden');
+  }
 
   // Sýnum niðurstöðuskjá
+  show('result');
 }
 
 /**
@@ -86,7 +94,8 @@ function playRound(player) {
  * @param {Event} e Upplýsingar um atburð
  */
 function round(e) {
-console.log('já')
+totalRounds = e.target.innerHTML
+show('play');
 }
 
 // Takki sem byrjar leik
@@ -100,15 +109,15 @@ createButtons(MAX_BEST_OF, round);
 // Event listeners fyrir skæri, blað, steinn takka
 document
   .querySelector('button.scissor')
-  .addEventListener('click', () => show('playRound'));
+  .addEventListener('click', () => playRound('1'));
 
 document
   .querySelector('button.paper')
-  .addEventListener('click', () => show('playRound'))
+  .addEventListener('click', () => playRound('2'));
 
 document
   .querySelector('button.rock')
-  .addEventListener('click', () => show('playRound'))
+  .addEventListener('click', () => playRound('3'));
 
 /**
  * Uppfærir stöðu yfir alla spilaða leiki þegar leik lýkur.
@@ -116,14 +125,36 @@ document
  */
 function finishGame() {
   // Bætum við nýjasta leik
-
+  games.push({
+    player: playerWins,
+    computer: computerWins,
+    win: playerWins > computerWins
+  })
+  if (playerWins > computerWins) {
+    totalWins++
+  } 
   // Uppfærum stöðu
-
+  document.querySelector('.games__played').textContent = games.length;
+  document.querySelector('.games__wins').textContent = (totalWins.toString());
+  document.querySelector('.games__winratio').textContent = (totalWins/games.length*100).toFixed(2);
+  document.querySelector('.games__losses').textContent = games.length-totalWins;
+  document.querySelector('.games__lossratio').textContent =(( games.length-totalWins)/games.length*100).toFixed(2);
   // Bætum leik við lista af spiluðum leikjum
+  let resultText = '';
+  if(playerWins > computerWins){
+    resultText = `Þú vannst ${playerWins}-${computerWins}`
+  } else {
+    resultText = `Tölva vann ${playerWins}-${computerWins}`
+  }
+  const li = el ('li', '')
+  document.querySelector('games__list')
 
   // Núllstillum breytur
-
   // Byrjum nýjan leik!
+  playerWins = 0;
+  computerWins = 0;
+  currentRound = 1;
+  show ('rounds');
 }
 
 // Næsta umferð og ljúka leik takkar
@@ -131,3 +162,7 @@ document
   .querySelector('button.finishGame')
   .addEventListener('click', finishGame);
 // TODO takki sem fer með í næstu umferð
+document
+  .querySelector('button.nextRound')
+  .addEventListener('click', ()=>show('play'));
+show ('start');
